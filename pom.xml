@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.github.hermannpencole</groupId>
+    <groupId>at.mic.nifi</groupId>
     <artifactId>nifi-deploy-config</artifactId>
-    <version>1.5.6-SNAPSHOT</version>
+    <version>1.12.1</version>
     <packaging>jar</packaging>
     <name>Deploy Nifi Configuration</name>
-    <url>https://github.com/hermannpencole/nifi-config</url>
 	<description>Automatically deploy and configure templates on Nifi</description>
  
     <properties>
@@ -17,9 +16,9 @@
     <dependencies>
 	
 		<dependency>
-            <groupId>com.github.hermannpencole</groupId>
+            <groupId>at.mic.nifi</groupId>
             <artifactId>nifi-swagger-client</artifactId>
-            <version>1.5.0.0</version>
+            <version>1.12.1</version>
         </dependency>
 
         <dependency>
@@ -99,12 +98,6 @@
   </repository>
 </distributionManagement> 
 
-    <scm>
-        <connection>scm:git:https://hermannpencole@github.com/hermannpencole/nifi-config.git</connection>
-        <developerConnection>scm:git:https://hermannpencole@github.com/hermannpencole/nifi-config.git</developerConnection>
-        <url>https://github.com/hermannpencole/nifi-config</url>
-        <tag>HEAD</tag>
-    </scm>
 
     <build>
         <plugins>			
@@ -139,7 +132,7 @@
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <manifestEntries>
-                                        <Main-Class>com.github.hermannpencole.nifi.config.Main</Main-Class>
+                                        <Main-Class>at.mic.nifi.config.Main</Main-Class>
                                         <Implementation-Version>${project.version}</Implementation-Version>
                                         <Implementation-Title>${project.name}</Implementation-Title>
                                     </manifestEntries>
@@ -197,44 +190,19 @@
                     <autoReleaseAfterClose>true</autoReleaseAfterClose>
                 </configuration>
             </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.6</version>
-                <executions>
-                    <execution>
-                        <id>sign-artifacts</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>sign</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+            
         </plugins>
     </build>
 	
   <profiles>
-    <profile>
-      <id>sign-artifacts</id>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-gpg-plugin</artifactId>
-            <version>1.5</version>
-            <executions>
-              <execution>
-                <id>sign-artifacts</id>
-                <phase>verify</phase>
-                <goals>
-                  <goal>sign</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
+
   </profiles>
+  
+  <repositories>
+  <repository>
+    <id>project.local</id>
+    <name>project</name>
+    <url>file:${user.home}/.m2/repository</url>
+  </repository>
+</repositories>
 </project>
