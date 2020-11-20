@@ -3,7 +3,9 @@ package at.mic.nifi.config.service;
 import at.mic.nifi.swagger.ApiClient;
 import at.mic.nifi.swagger.ApiException;
 import at.mic.nifi.swagger.Configuration;
+import at.mic.nifi.swagger.auth.OAuth;
 import at.mic.nifi.swagger.client.AccessApi;
+import at.mic.nifi.swagger.client.FlowApi;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -18,6 +20,10 @@ public class AccessService {
 
     @Inject
     private AccessApi apiInstance;
+    
+    @Inject
+    private FlowApi flowApi;
+
 
     /**
      * add token on http client. The token is ask to nifi.
@@ -29,14 +35,19 @@ public class AccessService {
      */
     public void addTokenOnConfiguration(boolean accessFromTicket, String username, String password) throws ApiException {
         ApiClient client = Configuration.getDefaultApiClient();
+
+
         if (accessFromTicket) {
             String token = apiInstance.createAccessTokenFromTicket();
             System.out.println(token);
             client.setAccessToken(token);
         } else if (username != null) {
             String token = apiInstance.createAccessToken(username, password);
-            System.out.println(token);
-            client.setAccessToken(token);
+            //Workaround for setAccessToken - setAccessToken does not work
+            client.addDefaultHeader("Authorization", "Bearer " + token);
+            //client.setUsername(username);
+            //client.setPassword(password);
+            //client.setAccessToken(token);
         }
         Configuration.setDefaultApiClient(client);
     }

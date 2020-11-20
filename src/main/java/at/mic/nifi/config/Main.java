@@ -37,7 +37,7 @@ public class Main {
     public static final double DEFAULT_PLACEWIDTH = 1935d;
     public static final String DEFAULT_PLACE = "0,0";
     public static final String ENV_NIFI_PASSWORD = "nifi_password";
-
+    public static final String DEFAULT_PARAMCONTEXT = "";
 
     /**
      * Print to the console the usage.
@@ -73,7 +73,7 @@ public class Main {
             options.addOption("timeout", true, "Allow specifying the polling timeout in second (defaut 120 seconds); negative value indicates no timeout");
             options.addOption("interval", true, "Allow specifying the polling interval in second (default 2 seconds)");
             options.addOption("accessFromTicket", false, "Access via Kerberos ticket exchange / SPNEGO negotiation");
-            options.addOption("noVerifySsl", false, "Turn off ssl verification certificat");
+            options.addOption("VerifySsl", false, "Turn on ssl verification certificat");
             options.addOption("noStartProcessors", false, "Turn off auto start of the processors after update of the config");
             options.addOption("enableDebugMode", false, "Turn on debug mode");
             options.addOption("connectionTimeout", true, "Configure api client connection timeout (default 10 seconds)");
@@ -83,7 +83,9 @@ public class Main {
             options.addOption("placeWidth", true, "Width of place for installing group (default 1935 : 430 * (4 + 1/2) = 4 pro line)");
             options.addOption("startPosition", true, "Starting position for the place for installing group, format x,y (default : 0,0)");
             options.addOption("failOnDuplicateNames", false, "Fail if template contains duplicate processor names in extractConfig mode");
-
+            options.addOption("ParamContext", true, "Extract Parameter Context");
+            options.addOption("checkParamContext", true, "Parameter Context must exist");
+            options.addOption("extractFull", false, "Extract Connections, Processors");
 
             
             // parse the command line arguments
@@ -95,7 +97,8 @@ public class Main {
                 printUsage(options);
                 System.exit(1);
             } else if (!"updateConfig".equals(cmd.getOptionValue("m")) && !"extractConfig".equals(cmd.getOptionValue("m"))
-                    && !"deployTemplate".equals(cmd.getOptionValue("m")) && !"undeploy".equals(cmd.getOptionValue("m"))) {
+                    && !"deployTemplate".equals(cmd.getOptionValue("m")) && !"undeploy".equals(cmd.getOptionValue("m")) && !"extractParameter".equals(cmd.getOptionValue("m"))
+                    && !"updateParameter".equals(cmd.getOptionValue("m"))) {
                 printUsage(options);
                 System.exit(1);
             } else if ((cmd.hasOption("password") && !cmd.hasOption("user"))) {
@@ -114,7 +117,13 @@ public class Main {
                 Double placeWidth = cmd.hasOption("placeWidth") ? Double.valueOf(cmd.getOptionValue("placeWidth")) : DEFAULT_PLACEWIDTH;
                 String startPlace = cmd.hasOption("startPosition") ? cmd.getOptionValue("startPosition") : DEFAULT_PLACE;
                 Boolean forceMode = cmd.hasOption("force");
-
+                String checkParamContext = cmd.hasOption("checkParamContext") ? cmd.getOptionValue("checkParamContext") : DEFAULT_PARAMCONTEXT;
+                
+                String paramContext =null;
+                if (cmd.hasOption("ParamContext") ) {
+                	cmd.getOptionValue("ParamContext");
+                }
+  
                 LOG.info(String.format("Starting config_nifi %s on mode %s", version, cmd.getOptionValue("m")));
                 String addressNifi = cmd.getOptionValue("n");
                 String fileConfiguration = cmd.getOptionValue("c");
@@ -132,7 +141,7 @@ public class Main {
 
                 //start
                 AccessService accessService = injector.getInstance(AccessService.class);
-                accessService.setConfiguration(addressNifi, !cmd.hasOption("noVerifySsl"), cmd.hasOption("enableDebugMode"), connectionTimeout, readTimeout, writeTimeout);
+                accessService.setConfiguration(addressNifi, cmd.hasOption("VerifySsl"), cmd.hasOption("enableDebugMode"), connectionTimeout, readTimeout, writeTimeout);
 
                 accessService.addTokenOnConfiguration(cmd.hasOption("accessFromTicket"), cmd.getOptionValue("user"), password);
 
@@ -144,16 +153,26 @@ public class Main {
                 if ("updateConfig".equals(cmd.getOptionValue("m"))) {
                     //Get an instance of the bean from the context
                     UpdateProcessorService processorService = injector.getInstance(UpdateProcessorService.class);
-                    processorService.updateByBranch(branchList, fileConfiguration, cmd.hasOption("noStartProcessors"));
+                    processorService.updateByBranch(branchList, fileConfiguration, cmd.hasOption("noStartProcessors"),checkParamContext);
                     LOG.info("The group configuration {} is updated with the file {}.", branch, fileConfiguration);
                 } else if ("extractConfig".equals(cmd.getOptionValue("m"))) {
                     //Get an instance of the bean from the context
                     ExtractProcessorService processorService = injector.getInstance(ExtractProcessorService.class);
-                    processorService.extractByBranch(branchList, fileConfiguration, cmd.hasOption("failOnDuplicateNames"));
+                    processorService.extractByBranch(branchList, fileConfiguration, cmd.hasOption("failOnDuplicateNames"),cmd.hasOption("extractFull"));
                     LOG.info("The group configuration {} is extrated on file {}", branch, fileConfiguration);
+                } else if ("extractParameter".equals(cmd.getOptionValue("m"))) {
+                    //Get an instance of the bean from the context
+                	ParameterContextService parameterContextService = injector.getInstance(ParameterContextService.class);
+                	parameterContextService.extractParameter(fileConfiguration, paramContext);
+                    LOG.info("The Parameter Context configuration {} is extrated on file {}",  fileConfiguration);
+                } else if ("updateParameter".equals(cmd.getOptionValue("m"))) {
+                    //Get an instance of the bean from the context
+                	ParameterContextService parameterContextService = injector.getInstance(ParameterContextService.class);
+                	parameterContextService.updateParameter(fileConfiguration);
+                    LOG.info("The parameter context configuration {} is updated with the file {}.",  fileConfiguration);
                 } else if ("deployTemplate".equals(cmd.getOptionValue("m"))) {
                     TemplateService templateService = injector.getInstance(TemplateService.class);
-                    templateService.installOnBranch(branchList, fileConfiguration, cmd.hasOption("keepTemplate"));
+                    templateService.installOnBranch(branchList, fileConfiguration, cmd.hasOption("keepTemplate"),checkParamContext);
                     LOG.info("Template {} is installed on the group {}", fileConfiguration, branch);
                 } else {
                     TemplateService templateService = injector.getInstance(TemplateService.class);

@@ -7,6 +7,7 @@ import at.mic.nifi.swagger.client.FlowApi;
 import at.mic.nifi.swagger.client.ProcessorsApi;
 import at.mic.nifi.swagger.client.model.*;
 import at.mic.nifi.swagger.client.ProcessGroupsApi;
+import at.mic.nifi.swagger.client.ParameterContextsApi;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.slf4j.Logger;
@@ -58,6 +59,8 @@ public class UpdateProcessorService {
     private ProcessGroupsApi processGroupApi;
 
 
+  
+
     /**
      * @param branch the branch
      * @param fileConfiguration fileConfiguration
@@ -65,7 +68,7 @@ public class UpdateProcessorService {
      * @throws IOException when io problem
      * @throws ApiException when api problem
      */
-    public void updateByBranch(List<String> branch, String fileConfiguration, boolean optionNoStartProcessors) throws IOException, ApiException {
+    public void updateByBranch(List<String> branch, String fileConfiguration, boolean optionNoStartProcessors,String checkParamContext) throws IOException, ApiException {
         File file = new File(fileConfiguration);
         
         
@@ -76,6 +79,14 @@ public class UpdateProcessorService {
         LOG.info("Processing : " + file.getName());
 
         GroupProcessorsEntity configuration = loadConfiguration(file);
+        
+        boolean find = FindParameterContext(checkParamContext);
+        
+        if (!find) {
+        	LOG.info("Context Parameter " + checkParamContext + " does not exist");
+        	return;
+        }
+        
 
         ProcessGroupFlowEntity componentSearch = processGroupService.changeDirectory(branch)
                 .orElseThrow(() -> new ConfigException(("cannot find " + Arrays.toString(branch.toArray()))));
@@ -93,24 +104,8 @@ public class UpdateProcessorService {
         String processGroupFlowId = componentSearch.getProcessGroupFlow().getId();
         componentSearch = flowapi.getFlow(processGroupFlowId);
                 
-        ParameterContextsEntity contexts = flowapi.getParameterContexts();
-     
-    
-        ParameterContextReferenceEntity parameterContextReference = new ParameterContextReferenceEntity();
-        ParameterContextReferenceDTO parameterContextReferenceDTO = new ParameterContextReferenceDTO();
-        PermissionsDTO permissions = componentSearch.getPermissions();
-        for ( ParameterContextEntity context : contexts.getParameterContexts()) {
-        	if (configuration.getContext().contains(context.getComponent().getName()))   {
-        		parameterContextReference.setId(context.getId());
-        		parameterContextReferenceDTO.setId(context.getId());
-        		parameterContextReferenceDTO.setName(context.getComponent().getName());
-				parameterContextReference.setComponent(parameterContextReferenceDTO);
-				parameterContextReference.setPermissions(permissions);
-
-        	}
-        }
-      
-       
+           
+        ParameterContextReferenceEntity parameterContextReference = GetParameterContextReference(configuration, componentSearch);
 
         //generate clientID
         String clientId = flowapi.generateClientId();
@@ -118,6 +113,7 @@ public class UpdateProcessorService {
         
         ProcessGroupEntity processGroup = processGroupApi.getProcessGroup(componentSearch.getProcessGroupFlow().getId());
         
+        // Update Root ProcessGroup
         updateProcessGroup(componentSearch.getProcessGroupFlow().getId(),processGroup,parameterContextReference);
         
 
@@ -130,7 +126,7 @@ public class UpdateProcessorService {
         if (!optionNoStartProcessors) {
             //Run all nifi processors
             componentSearch = flowapi.getFlow(processGroupFlowId);
-            //processGroupService.start(componentSearch);
+            processGroupService.start(componentSearch);
             //setState(componentSearch, ProcessorDTO.StateEnum.RUNNING);
             LOG.info(Arrays.toString(branch.toArray()) + " is running");
         }
@@ -138,6 +134,46 @@ public class UpdateProcessorService {
         LOG.debug("updateByBranch end");
     }
 
+    
+    private boolean FindParameterContext(String paramcontext) throws ApiException {
+   	 ParameterContextsEntity contexts = flowapi.getParameterContexts();
+     
+   	 if (paramcontext == null) {
+    		return true;
+    	 }
+   	 
+   	 if (paramcontext.length()<1) {
+   		return true;
+   	 }
+
+     for ( ParameterContextEntity context : contexts.getParameterContexts()) {
+       if (paramcontext.contains(context.getComponent().getName()))   {
+         return true;
+    	}
+     }
+	 return false;
+   }
+    
+    private ParameterContextReferenceEntity GetParameterContextReference(GroupProcessorsEntity configuration,ProcessGroupFlowEntity componentSearch) throws ApiException {
+    	 ParameterContextsEntity contexts = flowapi.getParameterContexts();
+         
+    	    
+         ParameterContextReferenceEntity parameterContextReference = new ParameterContextReferenceEntity();
+         ParameterContextReferenceDTO parameterContextReferenceDTO = new ParameterContextReferenceDTO();
+         PermissionsDTO permissions = componentSearch.getPermissions();
+         for ( ParameterContextEntity context : contexts.getParameterContexts()) {
+         	if (configuration.getContext().contains(context.getComponent().getName()))   {
+         		parameterContextReference.setId(context.getId());
+         		parameterContextReferenceDTO.setId(context.getId());
+         		parameterContextReferenceDTO.setName(context.getComponent().getName());
+ 				parameterContextReference.setComponent(parameterContextReferenceDTO);
+ 				parameterContextReference.setPermissions(permissions);
+
+         	}
+         }
+		return parameterContextReference;
+    }
+    
     private GroupProcessorsEntity loadConfiguration(File file) throws IOException {
         Gson gson = new GsonBuilder().serializeNulls().create();
 

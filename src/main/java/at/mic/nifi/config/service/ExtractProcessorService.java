@@ -45,21 +45,16 @@ public class ExtractProcessorService {
      * @throws IOException when commmunication pb
      * @throws ApiException othe prblem
      */
-    public void extractByBranch(List<String> branch, String fileConfiguration, boolean failOnDuplicateNames) throws IOException, ApiException {
+    public void extractByBranch(List<String> branch, String fileConfiguration, boolean failOnDuplicateNames,boolean extractFull) throws IOException, ApiException {
         File file = new File(fileConfiguration);
 
         ProcessGroupFlowEntity componentSearch = processGroupService.changeDirectory(branch)
                 .orElseThrow(() -> new ConfigException(("cannot find " + Arrays.toString(branch.toArray()))));
 
         //add group processors and processors
-        GroupProcessorsEntity result = extractJsonFromComponent(componentSearch);
-        
-        
-        //ParameterContextsEntity contexts = flowapi.getParameterContexts();
-        //for ( ParameterContextEntity context : contexts.getParameterContexts()) {
-        //    System.out.println(context.getComponent().getName()); 
-        //}
-
+        GroupProcessorsEntity result = extractJsonFromComponent(componentSearch,extractFull);
+               
+     
         //add controllers
         String processorGroupFlowId = componentSearch.getProcessGroupFlow().getId();
         //TODO verify if must include ancestor and descendant
@@ -120,20 +115,25 @@ public class ExtractProcessorService {
      * @return the component extracted
      * @throws ApiException when problem api
      */
-    private GroupProcessorsEntity extractJsonFromComponent(ProcessGroupFlowEntity idComponent) throws ApiException {
+    private GroupProcessorsEntity extractJsonFromComponent(ProcessGroupFlowEntity idComponent,boolean extractFull) throws ApiException {
         GroupProcessorsEntity result = new GroupProcessorsEntity();
         ProcessGroupFlowDTO processGroupFlow = idComponent.getProcessGroupFlow();
                
         
         result.setName(processGroupFlow.getBreadcrumb().getBreadcrumb().getName());
-        result.setContext(processGroupFlow.getParameterContext().getComponent().getName());
-        
+        if (processGroupFlow.getParameterContext() != null) { 
+          result.setContext(processGroupFlow.getParameterContext().getComponent().getName());
+        }
         if (processGroupFlow.getFlow().getProcessors() == null) processGroupFlow.getFlow().setProcessors(new ArrayList<>());
         if (processGroupFlow.getFlow().getProcessGroups() == null) processGroupFlow.getFlow().setProcessGroups(new ArrayList<>());
-        processGroupFlow.getFlow().getProcessors()
-                .forEach(processor -> result.getProcessors().add(extractProcessor(processor.getComponent())));
+
+        if (extractFull) {
+          processGroupFlow.getFlow().getProcessors()
+                 .forEach(processor -> result.getProcessors().add(extractProcessor(processor.getComponent())));
+        }
+        
         for (ProcessGroupEntity processGroups : processGroupFlow.getFlow().getProcessGroups()) {
-            result.getGroupProcessorsEntity().add(extractJsonFromComponent(flowapi.getFlow(processGroups.getId())));
+            result.getGroupProcessorsEntity().add(extractJsonFromComponent(flowapi.getFlow(processGroups.getId()), extractFull));
         }
         if (result.getGroupProcessorsEntity().isEmpty()) {
             result.setGroupProcessorsEntity(null);
@@ -143,10 +143,12 @@ public class ExtractProcessorService {
         }
         result.setControllerServicesDTO(null);
 
-        if (idComponent.getProcessGroupFlow().getFlow().getConnections() == null) idComponent.getProcessGroupFlow().getFlow().setConnections(new ArrayList<>());
-        List<ConnectionEntity> connections = idComponent.getProcessGroupFlow().getFlow().getConnections();
-        result.setConnections(extractConnections(connections));
-
+        if (extractFull) {
+          if (idComponent.getProcessGroupFlow().getFlow().getConnections() == null) idComponent.getProcessGroupFlow().getFlow().setConnections(new ArrayList<>());
+          List<ConnectionEntity> connections = idComponent.getProcessGroupFlow().getFlow().getConnections();
+          result.setConnections(extractConnections(connections));
+        }
+        	
         return result;
     }
 

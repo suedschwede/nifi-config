@@ -65,7 +65,7 @@ public class TemplateServiceTest {
         TemplatesEntity templatesEntity = new TemplatesEntity();
         when(flowApiMock.getTemplates()).thenReturn(templatesEntity);
 
-        templateService.installOnBranch(branch, fileName, true);
+        templateService.installOnBranch(branch, fileName, true,"");
 
         InstantiateTemplateRequestEntity instantiateTemplate = new InstantiateTemplateRequestEntity(); // InstantiateTemplateRequestEntity | The instantiate template request.
         instantiateTemplate.setTemplateId(template.getId());
@@ -95,7 +95,7 @@ public class TemplateServiceTest {
         when(flowApiMock.getTemplates()).thenReturn(templatesEntity);
         //when(processGroupsApiMock.uploadTemplate(processGroupFlow.getId(), new File(fileName))).thenReturn(template);
 
-        templateService.installOnBranch(branch, fileName, false);
+        templateService.installOnBranch(branch, fileName, false,"");
 
         InstantiateTemplateRequestEntity instantiateTemplate = new InstantiateTemplateRequestEntity(); // InstantiateTemplateRequestEntity | The instantiate template request.
         instantiateTemplate.setTemplateId(template.getId());

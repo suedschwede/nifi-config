@@ -117,7 +117,7 @@ public class MainTest {
         Mockito.when(Guice.createInjector((AbstractModule) anyObject())).thenReturn(injector);
 
         Main.main(new String[]{"-nifi", "http://localhost:8080/nifi-api", "-branch", "\"root>N2\"", "-conf", "adr", "-m", "deployTemplate"});
-        verify(templateServiceMock).installOnBranch(Arrays.asList("root", "N2"), "adr", false);
+        verify(templateServiceMock).installOnBranch(Arrays.asList("root", "N2"), "adr", false,"");
     }
 
     @Test
@@ -140,7 +140,7 @@ public class MainTest {
         Mockito.when(Guice.createInjector((AbstractModule) anyObject())).thenReturn(injector);
 
         Main.main(new String[]{"-nifi", "http://localhost:8080/nifi-api", "-branch", "\"root>N2\"", "-conf", "adr", "-m", "updateConfig", "-user", "user", "-password", "password"});
-        verify(updateProcessorServiceMock).updateByBranch(Arrays.asList("root", "N2"), "adr", false);
+        verify(updateProcessorServiceMock).updateByBranch(Arrays.asList("root", "N2"), "adr", false,"");
     }
 
     @Test
@@ -166,7 +166,7 @@ public class MainTest {
         Mockito.when(Guice.createInjector((AbstractModule) anyObject())).thenReturn(injector);
 
         Main.main(new String[]{"-nifi", "http://localhost:8080/nifi-api", "-branch", "\"root>N2\"", "-conf", "adr", "-m", "updateConfig", "-user", "user", "-password", "password"});
-        verify(updateProcessorServiceMock).updateByBranch(Arrays.asList("root", "N2"), "adr", false);
+        verify(updateProcessorServiceMock).updateByBranch(Arrays.asList("root", "N2"), "adr", false,"");
         verify(accessServiceMock).addTokenOnConfiguration(false, "user", "nifi_pass");
     }
 
@@ -189,7 +189,7 @@ public class MainTest {
         Mockito.when(Guice.createInjector((AbstractModule) anyObject())).thenReturn(injector);
 
         Main.main(new String[]{"-nifi", "http://localhost:8080/nifi-api", "-conf", "adr", "-m", "extractConfig", "-accessFromTicket"});
-        verify(extractProcessorServiceMock).extractByBranch(Arrays.asList("root"), "adr", false);
+        verify(extractProcessorServiceMock).extractByBranch(Arrays.asList("root"), "adr", false,true);
     }
 
     @Test

@@ -1,6 +1,7 @@
 package at.mic.nifi.config.service;
 
 import at.mic.nifi.config.model.ConfigException;
+import at.mic.nifi.config.model.GroupProcessorsEntity;
 import at.mic.nifi.config.model.TimeoutException;
 import at.mic.nifi.config.utils.FunctionUtils;
 import at.mic.nifi.swagger.ApiException;
@@ -70,18 +71,46 @@ public class TemplateService {
      * @param keepTemplate if keepTemplate
      * @throws ApiException when api problem
      */
-    public void installOnBranch(List<String> branch, String fileConfiguration, boolean keepTemplate) throws ApiException {
+    public void installOnBranch(List<String> branch, String fileConfiguration, boolean keepTemplate,String checkParamContext) throws ApiException {
         ProcessGroupFlowDTO processGroupFlow = processGroupService.createDirectory(branch).getProcessGroupFlow();
         File file = new File(fileConfiguration);
+        
+        
+        boolean find = FindParameterContext(checkParamContext);
+        
+        if (!find) {
+        	LOG.info("Context Parameter " + checkParamContext + " does not exist");
+        	return;
+        }
+        
+
 
         TemplatesEntity templates = flowApi.getTemplates();
         String name = FilenameUtils.getBaseName(file.getName());
+        
         if (templates.getTemplates() == null) templates.setTemplates(new ArrayList<>());
+        
         Optional<TemplateEntity> oldTemplate = templates.getTemplates().stream().filter(templateParse -> templateParse.getTemplate().getName().equals(name)).findFirst();
         if (oldTemplate.isPresent()) {
             templatesApi.removeTemplate(oldTemplate.get().getTemplate().getId(), false);
         }
-        Optional<TemplateEntity> template = Optional.of(processGroupsApi.uploadTemplate(processGroupFlow.getId(), file, false));
+        
+        Optional<TemplateEntity> template = null;
+        try {
+          template = Optional.of(processGroupsApi.uploadTemplate(processGroupFlow.getId(), file, false));
+        } catch (Exception e) {
+        	LOG.info(e.getMessage());
+        }          
+        
+        //Workaround uploadTemplate always returns an error  !!!
+        templates = flowApi.getTemplates();
+        for (TemplateEntity  temp : templates.getTemplates()) {
+        	if (name.contains(temp.getTemplate().getName())) {
+        		template = Optional.of(temp);
+        	}
+        }
+        
+                
         InstantiateTemplateRequestEntity instantiateTemplate = new InstantiateTemplateRequestEntity(); // InstantiateTemplateRequestEntity | The instantiate template request.
         instantiateTemplate.setTemplateId(template.get().getTemplate().getId());
         instantiateTemplate.setOriginX(0d);
@@ -119,6 +148,25 @@ public class TemplateService {
 
     }
 
+    
+    private boolean FindParameterContext(String paramcontext) throws ApiException {
+   	 ParameterContextsEntity contexts = flowApi.getParameterContexts();
+     
+   	 if (paramcontext == null) {
+    		return true;
+    	 }
+   	 
+   	 if (paramcontext.length()<1) {
+   		return true;
+   	 }
+
+     for ( ParameterContextEntity context : contexts.getParameterContexts()) {
+       if (paramcontext.contains(context.getComponent().getName()))   {
+         return true;
+    	}
+     }
+	 return false;
+   }
 
 
 

@@ -70,7 +70,7 @@ public class UpdateProcessorServiceTest {
 
     @Test(expected = FileNotFoundException.class)
     public void updateFileNotExitingBranchTest() throws ApiException, IOException {
-        updateProcessorService.updateByBranch(branch, "not existing", false);
+        updateProcessorService.updateByBranch(branch, "not existing", false,"");
     }
 
     @Test
@@ -89,7 +89,7 @@ public class UpdateProcessorServiceTest {
         processGroupFlowEntityHas(subGroupResponse, subConnection);
         when(flowapiMock.getFlow(subGroupResponse.getProcessGroupFlow().getId())).thenReturn(subGroupResponse);
 
-        updateProcessorService.updateByBranch(branch, resourcePath("mytest1.json").getPath(), false);
+        updateProcessorService.updateByBranch(branch, resourcePath("mytest1.json").getPath(), false,"");
 
         verify(processorsApiMock, times(3)).updateProcessor(any(), any());
         verify(processorsApiMock).updateProcessor(eq("idProc"), any());
@@ -113,7 +113,7 @@ public class UpdateProcessorServiceTest {
         proc.getComponent().getRelationships().add(relationship);
         processGroupFlowEntityHas(proc);
 
-        updateProcessorService.updateByBranch(branch, resourcePath("mytestAutoTerminateRelationShip.json").getPath(), false);
+        updateProcessorService.updateByBranch(branch, resourcePath("mytestAutoTerminateRelationShip.json").getPath(), false,"");
 
         verify(processorsApiMock, times(1)).updateProcessor(any(), any());
         ArgumentCaptor<ProcessorEntity> processorEntity = ArgumentCaptor.forClass(ProcessorEntity.class);
@@ -131,7 +131,7 @@ public class UpdateProcessorServiceTest {
         when(controllerServicesServiceMock.setStateControllerService(any(), any())).thenReturn(controllerServicesEntity.getControllerServices().get(0));
         when(controllerServicesServiceMock.updateControllerService(any(), any(), eq(false))).thenReturn(controllerServicesEntity.getControllerServices().get(0));
 
-        updateProcessorService.updateByBranch(branch, resourcePath("mytestController.json").getPath(), false);
+        updateProcessorService.updateByBranch(branch, resourcePath("mytestController.json").getPath(), false,"");
 
         ArgumentCaptor<ControllerServiceEntity> controllerServiceEntity = ArgumentCaptor.forClass(ControllerServiceEntity.class);
         ArgumentCaptor<ControllerServiceDTO> controllerServiceDTO = ArgumentCaptor.forClass(ControllerServiceDTO.class);
@@ -146,7 +146,7 @@ public class UpdateProcessorServiceTest {
         processGroupFlowEntityHas(createProcessGroupEntity("idSubGroup", "nameSubGroup"));
 
         when(processorsApiMock.updateProcessor(any(), any())).thenThrow(new ApiException());
-        updateProcessorService.updateByBranch(branch, resourcePath("mytest1.json").getPath(), false);
+        updateProcessorService.updateByBranch(branch, resourcePath("mytest1.json").getPath(), false,"");
     }
 
     private URL resourcePath(String resourceName) {
