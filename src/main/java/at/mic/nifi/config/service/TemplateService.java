@@ -7,6 +7,7 @@ import at.mic.nifi.config.utils.FunctionUtils;
 import at.mic.nifi.swagger.ApiException;
 import at.mic.nifi.swagger.client.FlowApi;
 import at.mic.nifi.swagger.client.ProcessGroupsApi;
+import at.mic.nifi.swagger.client.SnippetsApi;
 import at.mic.nifi.swagger.client.TemplatesApi;
 import at.mic.nifi.swagger.client.model.*;
 import org.apache.commons.io.FilenameUtils;
@@ -17,11 +18,17 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -53,9 +60,15 @@ public class TemplateService {
 
     @Inject
     private TemplatesApi templatesApi;
+    
+    @Inject
+    private SnippetsApi snippetsApi;
 
     @Inject
     private ControllerServicesService controllerServicesService;
+    
+    @Inject
+    private ProcessGroupsApi processGroupApi;
 
     @Named("timeout")
     @Inject
@@ -146,6 +159,82 @@ public class TemplateService {
 
         processGroupService.delete(processGroupFlow.get().getProcessGroupFlow().getId());
 
+    }
+    
+    
+    public void createTemplate(List<String> branch, String fileConfiguration) throws ApiException, IOException {
+    	
+    	 File file = new File(fileConfiguration);
+    	
+    	  Optional<ProcessGroupFlowEntity> processGroupFlow = processGroupService.changeDirectory(branch);
+          if (!processGroupFlow.isPresent()) {
+              LOG.warn("cannot find " + Arrays.toString(branch.toArray()));
+              return;
+          }
+          
+          ProcessGroupFlowEntity componentSearch = processGroupService.changeDirectory(branch)
+                  .orElseThrow(() -> new ConfigException(("cannot find " + Arrays.toString(branch.toArray()))));
+
+     
+          String clientId = flowApi.generateClientId();
+          ProcessGroupEntity processGroup = processGroupApi.getProcessGroup(componentSearch.getProcessGroupFlow().getId());
+ 
+         SnippetEntity snippet = new SnippetEntity();
+         SnippetDTO snippetDTO = new SnippetDTO();
+
+          
+         snippetDTO.setParentGroupId(processGroup.getComponent().getParentGroupId());
+
+         RevisionDTO revisionDTO = new RevisionDTO();
+         revisionDTO.setClientId(clientId);
+         revisionDTO.setVersion((long) 1);
+         
+		 Map<String, RevisionDTO> processGroups = new HashMap<>();
+		 processGroups.put(processGroup.getId(), revisionDTO);
+		 
+		snippetDTO.setProcessGroups(processGroups );
+         
+
+		
+		snippet.setSnippet(snippetDTO);
+          
+
+		SnippetEntity snippet1 = snippetsApi.createSnippet(snippet);
+		  
+		  
+		 String name = processGroup.getComponent().getName();
+          
+          CreateTemplateRequestEntity body = new CreateTemplateRequestEntity();
+          
+          body.setName(name);
+          body.setSnippetId(snippet1.getSnippet().getId());
+
+          processGroupsApi.createTemplate(processGroup.getId(), body);
+          
+          TemplatesEntity templates = flowApi.getTemplates();
+          Optional<TemplateEntity> template = null;
+		  for (TemplateEntity  temp : templates.getTemplates()) {
+          	if (name.contains(temp.getTemplate().getName())) {
+          		template = Optional.of(temp);
+          	}
+          }
+          
+          
+          String export = templatesApi.exportTemplate(template.get().getId());
+          
+          //System.out.println(export);
+          
+          try  {
+        	  OutputStreamWriter osw=new OutputStreamWriter(new FileOutputStream(file),"UTF-8");
+        	  osw.write(export);
+        	  osw.close();
+          } finally {
+              LOG.debug("getTemplate end");
+          }
+          
+          templatesApi.removeTemplate(template.get().getId(), false);
+
+    	
     }
 
     

@@ -7,7 +7,6 @@ import at.mic.nifi.swagger.client.FlowApi;
 import at.mic.nifi.swagger.client.ProcessorsApi;
 import at.mic.nifi.swagger.client.model.*;
 import at.mic.nifi.swagger.client.ProcessGroupsApi;
-import at.mic.nifi.swagger.client.ParameterContextsApi;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.slf4j.Logger;
@@ -16,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.*;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -191,11 +189,7 @@ public class UpdateProcessorService {
     private void updateControllers(GroupProcessorsEntity configuration, String idComponent, String clientId) throws ApiException {
         //TODO verify if must include ancestor and descendant
         ControllerServicesEntity controllerServicesEntity = flowapi.getControllerServicesFromGroup(idComponent, true, false);
-        //must we use flowapi.getControllerServicesFromController() ??
-        /*ControllerServicesEntity controllerServiceController = flowapi.getControllerServicesFromController();
-        for (ControllerServiceEntity controllerServiceEntity: controllerServiceController.getControllerServices()) {
-            controllerServicesEntity.addControllerServicesItem(controllerServiceEntity);
-        }*/
+
         List<ControllerServiceEntity> controllerUpdated = new ArrayList<>();
         List<ControllerServiceEntity> controllerDeleted = new ArrayList<>();
 
@@ -260,14 +254,44 @@ public class UpdateProcessorService {
             controllerServicesService.setStateReferenceProcessors(controllerServiceEntity, UpdateControllerServiceReferenceRequestEntity.StateEnum.RUNNING);
         }
 
-        //must we start all controller referencing on the group ?
-        // for (ControllerServiceEntity controllerServiceEntity :  controllerServicesEntity.getControllerServices()) {
-        //Enabling this controller service
-        //    controllerServicesService.setStateControllerService(controllerServiceEntity, ControllerServiceDTO.StateEnum.ENABLED);
-        //    controllerServicesService.setStateReferenceProcessors(controllerServiceEntity, UpdateControllerServiceReferenceRequestEntity.StateEnum.RUNNING);
-        //}
+     
     }
+    
+    public void stopAll(List<String> branch) throws IOException, ApiException {
 
+        ProcessGroupFlowEntity componentSearch = processGroupService.changeDirectory(branch)
+                .orElseThrow(() -> new ConfigException(("cannot find " + Arrays.toString(branch.toArray()))));
+							
+		processGroupService.stop(componentSearch);
+				
+		List<ControllerServiceEntity> controllerServices = flowapi.getControllerServicesFromGroup(componentSearch.getProcessGroupFlow().getId(), false, true).getControllerServices();
+		
+		for ( ControllerServiceEntity controllerService : controllerServices) {
+			controllerServicesService.setStateReferencingControllerServices(controllerService.getId(), UpdateControllerServiceReferenceRequestEntity.StateEnum.DISABLED);
+			ControllerServiceEntity controllerServiceEntityUpdate = controllerServicesService.setStateControllerService(controllerService, ControllerServiceDTO.StateEnum.DISABLED);
+		}
+			
+		   
+    }
+    
+    public void startAll(List<String> branch) throws IOException, ApiException {
+
+    	 ProcessGroupFlowEntity componentSearch = processGroupService.changeDirectory(branch)
+                 .orElseThrow(() -> new ConfigException(("cannot find " + Arrays.toString(branch.toArray()))));
+ 							
+ 		 				
+ 		List<ControllerServiceEntity> controllerServices = flowapi.getControllerServicesFromGroup(componentSearch.getProcessGroupFlow().getId(), false, true).getControllerServices();
+ 		
+ 		for ( ControllerServiceEntity controllerService : controllerServices) {
+ 			controllerServicesService.setStateReferencingControllerServices(controllerService.getId(), UpdateControllerServiceReferenceRequestEntity.StateEnum.ENABLED);
+ 			ControllerServiceEntity controllerServiceEntityUpdate = controllerServicesService.setStateControllerService(controllerService, ControllerServiceDTO.StateEnum.ENABLED);
+ 		}
+ 		
+ 		
+ 		processGroupService.start(componentSearch);
+
+    }
+    
     /**
      * Update controller to newControllerServiceId for ReferencingComponents on oldControllersService
      *

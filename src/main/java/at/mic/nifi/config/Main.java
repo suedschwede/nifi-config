@@ -64,7 +64,7 @@ public class Main {
             Options options = new Options();
             options.addOption("h", "help", false, "Usage description");
             options.addOption("b", "branch", true, "Target process group (must begin by root) : root > my processor > my proce2 (default root)");
-            options.addOption("m", "mode", true, "Mandatory, possible values : updateConfig/extractConfig/deployTemplate/undeploy");
+            options.addOption("m", "mode", true, "Mandatory, possible values : updateConfig/extractConfig/deployTemplate/getTemplate/undeploy/stopAll/startAll");
             options.addOption("c", "conf", true, "Mandatory if mode in [updateConfig, extractConfig, deployTemplate]  : configuration file");
             options.addOption("n", "nifi", true, "Mandatory : Nifi URL (ex : http://localhost:8080/nifi-api)");
             options.addOption("user", true, "User name for access via username/password.");
@@ -87,19 +87,25 @@ public class Main {
             options.addOption("checkParamContext", true, "Parameter Context must exist");
             options.addOption("extractFull", false, "Extract Connections, Processors");
 
+
             
             // parse the command line arguments
             CommandLine cmd = commandLineParser.parse(options, args);
             if (cmd.hasOption("h")) {
                 printUsage(options);
                 System.exit(1);
-            } else if (!cmd.hasOption("n") || (!cmd.hasOption("c") && cmd.hasOption("m") && !cmd.getOptionValue("m").equals("undeploy"))) {
-                printUsage(options);
+            } else if (!cmd.hasOption("n"))  {
+            	printUsage(options);
                 System.exit(1);
+            } else if  (!cmd.hasOption("c") && cmd.hasOption("m") && !(cmd.getOptionValue("m").equals("undeploy")  || cmd.getOptionValue("m").equals("stopAll") || cmd.getOptionValue("m").equals("startAll"))) {
+                System.out.println("1");
+            	printUsage(options);
+                System.exit(1);    
             } else if (!"updateConfig".equals(cmd.getOptionValue("m")) && !"extractConfig".equals(cmd.getOptionValue("m"))
                     && !"deployTemplate".equals(cmd.getOptionValue("m")) && !"undeploy".equals(cmd.getOptionValue("m")) && !"extractParameter".equals(cmd.getOptionValue("m"))
-                    && !"updateParameter".equals(cmd.getOptionValue("m"))) {
-                printUsage(options);
+                    && !"updateParameter".equals(cmd.getOptionValue("m")) && !"getTemplate".equals(cmd.getOptionValue("m"))
+                    && !"startAll".equals(cmd.getOptionValue("m")) && !"stopAll".equals(cmd.getOptionValue("m"))) {
+            	printUsage(options);
                 System.exit(1);
             } else if ((cmd.hasOption("password") && !cmd.hasOption("user"))) {
                 printUsage(options);
@@ -160,6 +166,10 @@ public class Main {
                     ExtractProcessorService processorService = injector.getInstance(ExtractProcessorService.class);
                     processorService.extractByBranch(branchList, fileConfiguration, cmd.hasOption("failOnDuplicateNames"),cmd.hasOption("extractFull"));
                     LOG.info("The group configuration {} is extrated on file {}", branch, fileConfiguration);
+                } else if ("getTemplate".equals(cmd.getOptionValue("m"))) {
+                	TemplateService templateService = injector.getInstance(TemplateService.class);;
+                	templateService.createTemplate(branchList,fileConfiguration);
+                    LOG.info("The group configuration {} is extrated on file {}", branch, fileConfiguration);
                 } else if ("extractParameter".equals(cmd.getOptionValue("m"))) {
                     //Get an instance of the bean from the context
                 	ParameterContextService parameterContextService = injector.getInstance(ParameterContextService.class);
@@ -174,6 +184,14 @@ public class Main {
                     TemplateService templateService = injector.getInstance(TemplateService.class);
                     templateService.installOnBranch(branchList, fileConfiguration, cmd.hasOption("keepTemplate"),checkParamContext);
                     LOG.info("Template {} is installed on the group {}", fileConfiguration, branch);
+                } else if ("stopAll".equals(cmd.getOptionValue("m"))) {
+                	UpdateProcessorService processorService = injector.getInstance(UpdateProcessorService.class);
+                    processorService.stopAll(branchList);
+                    LOG.info("Stop All ", branch);
+                } else if ("startAll".equals(cmd.getOptionValue("m"))) {
+                	UpdateProcessorService processorService = injector.getInstance(UpdateProcessorService.class);
+                    processorService.startAll(branchList);
+                    LOG.info("Start All ", branch);
                 } else {
                     TemplateService templateService = injector.getInstance(TemplateService.class);
                     templateService.undeploy(branchList);
