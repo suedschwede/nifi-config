@@ -189,7 +189,7 @@ public class MainTest {
         Mockito.when(Guice.createInjector((AbstractModule) anyObject())).thenReturn(injector);
 
         Main.main(new String[]{"-nifi", "http://localhost:8080/nifi-api", "-conf", "adr", "-m", "extractConfig", "-accessFromTicket"});
-        verify(extractProcessorServiceMock).extractByBranch(Arrays.asList("root"), "adr", false,true);
+        verify(extractProcessorServiceMock).extractByBranch(Arrays.asList("root"), "adr",null, false,true);
     }
 
     @Test

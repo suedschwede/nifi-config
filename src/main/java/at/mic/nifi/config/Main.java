@@ -38,6 +38,7 @@ public class Main {
     public static final String DEFAULT_PLACE = "0,0";
     public static final String ENV_NIFI_PASSWORD = "nifi_password";
     public static final String DEFAULT_PARAMCONTEXT = "";
+    public static final String DEFAULT_SETTINGS = null;
 
     /**
      * Print to the console the usage.
@@ -86,7 +87,7 @@ public class Main {
             options.addOption("ParamContext", true, "Extract Parameter Context");
             options.addOption("checkParamContext", true, "Parameter Context must exist");
             options.addOption("extractFull", false, "Extract Connections, Processors");
-
+            options.addOption("settings", true, "Overrule Controller Service properties, only for extractConfig");
 
             
             // parse the command line arguments
@@ -124,6 +125,7 @@ public class Main {
                 String startPlace = cmd.hasOption("startPosition") ? cmd.getOptionValue("startPosition") : DEFAULT_PLACE;
                 Boolean forceMode = cmd.hasOption("force");
                 String checkParamContext = cmd.hasOption("checkParamContext") ? cmd.getOptionValue("checkParamContext") : DEFAULT_PARAMCONTEXT;
+                String settingsfile = cmd.hasOption("settings") ? cmd.getOptionValue("settings") : DEFAULT_SETTINGS;
                 
                 String paramContext =null;
                 if (cmd.hasOption("ParamContext") ) {
@@ -133,6 +135,7 @@ public class Main {
                 LOG.info(String.format("Starting config_nifi %s on mode %s", version, cmd.getOptionValue("m")));
                 String addressNifi = cmd.getOptionValue("n");
                 String fileConfiguration = cmd.getOptionValue("c");
+                
 
                 String branch = "root";
                 if (cmd.hasOption("b")) {
@@ -164,7 +167,7 @@ public class Main {
                 } else if ("extractConfig".equals(cmd.getOptionValue("m"))) {
                     //Get an instance of the bean from the context
                     ExtractProcessorService processorService = injector.getInstance(ExtractProcessorService.class);
-                    processorService.extractByBranch(branchList, fileConfiguration, cmd.hasOption("failOnDuplicateNames"),cmd.hasOption("extractFull"));
+                    processorService.extractByBranch(branchList, fileConfiguration,settingsfile, cmd.hasOption("failOnDuplicateNames"),cmd.hasOption("extractFull"));
                     LOG.info("The group configuration {} is extrated on file {}", branch, fileConfiguration);
                 } else if ("getTemplate".equals(cmd.getOptionValue("m"))) {
                 	TemplateService templateService = injector.getInstance(TemplateService.class);;

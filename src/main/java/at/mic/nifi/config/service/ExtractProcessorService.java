@@ -45,9 +45,17 @@ public class ExtractProcessorService {
      * @throws IOException when commmunication pb
      * @throws ApiException othe prblem
      */
-    public void extractByBranch(List<String> branch, String fileConfiguration, boolean failOnDuplicateNames,boolean extractFull) throws IOException, ApiException {
+    public void extractByBranch(List<String> branch, String fileConfiguration, String settingsfile, boolean failOnDuplicateNames,boolean extractFull) throws IOException, ApiException {
         File file = new File(fileConfiguration);
 
+        File setfile = null;
+        GroupProcessorsEntity settings = new GroupProcessorsEntity();
+        if  (settingsfile!=null) {
+        	setfile = new File(settingsfile);
+        	settings = loadConfiguration(setfile);
+        }
+   
+        
         ProcessGroupFlowEntity componentSearch = processGroupService.changeDirectory(branch)
                 .orElseThrow(() -> new ConfigException(("cannot find " + Arrays.toString(branch.toArray()))));
 
@@ -64,7 +72,7 @@ public class ExtractProcessorService {
             result.setControllerServicesDTO(new ArrayList<>());
         }
         for (ControllerServiceEntity controllerServiceEntity : controllerServicesEntity.getControllerServices()) {
-            result.getControllerServicesDTO().add(extractController(controllerServiceEntity));
+            result.getControllerServicesDTO().add(extractController(controllerServiceEntity,settings));
         }
 
         checkDuplicateProcessorNames(result.getProcessors(), failOnDuplicateNames);
@@ -185,16 +193,47 @@ public class ExtractProcessorService {
         return result;
     }
 
-    private ControllerServiceDTO extractController(ControllerServiceEntity controllerServiceEntity) {
+    private ControllerServiceDTO extractController(ControllerServiceEntity controllerServiceEntity, GroupProcessorsEntity settings) {
         ControllerServiceDTO result = new ControllerServiceDTO();
         result.setName(controllerServiceEntity.getComponent().getName());
-        result.setProperties(controllerServiceEntity.getComponent().getProperties());
+        
+        List<ControllerServiceDTO> services = settings.getControllerServicesDTO();
+        
+        ControllerServiceDTO service = findControllerService(services,controllerServiceEntity.getComponent().getName());
+        
+        Map<String, String> propertiesTemp = controllerServiceEntity.getComponent().getProperties();
+        Map<String, String> properties =  new HashMap<>();
+
+        
+        for (Map.Entry<String, String> property : propertiesTemp.entrySet()) {
+        	if ((service != null) && ((service.getProperties().get(property.getKey()) != null))) {
+              properties.put(property.getKey(),service.getProperties().get(property.getKey()));
+        	} else {
+         		properties.put(property.getKey(),property.getValue());
+            }
+        }
+        
+        result.setProperties(properties);
         result.setPersistsState(null);
         result.setRestricted(null);
         result.setDescriptors(null);
         result.setReferencingComponents(null);
         result.setValidationErrors(null);
         return result;
+    }
+    
+    private ControllerServiceDTO findControllerService(List<ControllerServiceDTO> services,String name) {
+		
+    	for (ControllerServiceDTO service : services) {
+    		if (name.toLowerCase().contains(service.getName().toLowerCase())) {
+    			return service;
+    		}
+    	}
+    	
+    	
+    	return null;
+    	
+    	
     }
 
     private List<Connection> extractConnections(List<ConnectionEntity> connections) {
@@ -214,5 +253,13 @@ public class ExtractProcessorService {
         connection.setBackPressureDataSizeThreshold(dto.getBackPressureDataSizeThreshold());
         connection.setBackPressureObjectThreshold(dto.getBackPressureObjectThreshold());
         return connection;
+    }
+    
+    private GroupProcessorsEntity loadConfiguration(File file) throws IOException {
+        Gson gson = new GsonBuilder().serializeNulls().create();
+
+        try (Reader reader = new InputStreamReader(new FileInputStream(file), "UTF-8")) {
+            return gson.fromJson(reader, GroupProcessorsEntity.class);
+        }
     }
 }

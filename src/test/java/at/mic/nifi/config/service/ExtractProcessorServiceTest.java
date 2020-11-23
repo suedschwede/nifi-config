@@ -71,17 +71,17 @@ public class ExtractProcessorServiceTest {
     @Test(expected = ConfigException.class)
     public void extractNotExitingBranchTest() throws ApiException, IOException {
         when(processGroupServiceMock.changeDirectory(branch)).thenReturn(Optional.empty());
-        extractService.extractByBranch(branch, temp.getAbsolutePath(), false,true);
+        extractService.extractByBranch(branch, temp.getAbsolutePath(),null, false,true);
     }
 
     @Test(expected = FileNotFoundException.class)
     public void extractErrorFileBranchTest() throws ApiException, IOException {
-        extractService.extractByBranch(branch, temp.getParent(), false,true);
+        extractService.extractByBranch(branch, temp.getParent(),null, false,true);
     }
 
     @Test
     public void extractEmptyBranchTest() throws ApiException, IOException {
-        extractService.extractByBranch(branch, temp.getAbsolutePath(), false,true);
+        extractService.extractByBranch(branch, temp.getAbsolutePath(),null, false,true);
 
         //evaluate response
         GroupProcessorsEntity result = loadOutputFileContent();
@@ -105,7 +105,7 @@ public class ExtractProcessorServiceTest {
         ProcessGroupFlowEntity subGroupResponse = TestUtils.createProcessGroupFlowEntity("idSubGroup", "nameSubGroup");
         when(flowapiMock.getFlow(subGroupResponse.getProcessGroupFlow().getId())).thenReturn(subGroupResponse);
 
-        extractService.extractByBranch(branch, temp.getAbsolutePath(), false,true);
+        extractService.extractByBranch(branch, temp.getAbsolutePath(),null, false,true);
 
         GroupProcessorsEntity result = loadOutputFileContent();
 
@@ -124,7 +124,7 @@ public class ExtractProcessorServiceTest {
         processGroupFlowEntityHas(createProcessorEntity("idProc2", "nameProcA"));
         processGroupFlowEntityHas(createProcessorEntity("idProc2", "nameProcB"));
 
-        extractService.extractByBranch(branch, temp.getAbsolutePath(), true,true);
+        extractService.extractByBranch(branch, temp.getAbsolutePath(),null, true,true);
     }
 
     @Test
@@ -132,7 +132,7 @@ public class ExtractProcessorServiceTest {
         processGroupFlowEntityHas(createProcessorEntity("idProc1", "nameProcA"));
         processGroupFlowEntityHas(createProcessorEntity("idProc2", "nameProcB"));
 
-        extractService.extractByBranch(branch, temp.getAbsolutePath(), true,true);
+        extractService.extractByBranch(branch, temp.getAbsolutePath(),null, true,true);
     }
 
     @Test
@@ -141,7 +141,7 @@ public class ExtractProcessorServiceTest {
         processGroupFlowEntityHas(createConnectionEntity("connectionTwoId", null, "sourceTwo", "destTwo", "2 GB", 10L));
         processGroupFlowEntityHas(createConnectionEntity("connectionThreeId", "connectionThree", "sourceTwo", "destOne", "1 GB", 1L));
 
-        extractService.extractByBranch(branch, temp.getAbsolutePath(), true,true);
+        extractService.extractByBranch(branch, temp.getAbsolutePath(),null, true,true);
 
         GroupProcessorsEntity result = loadOutputFileContent();
         assertEquals(result.getConnections().size(), 3);
@@ -162,7 +162,7 @@ public class ExtractProcessorServiceTest {
         when(flowapiMock.getFlow("subGroupId")).thenReturn(subGroupEntity);
         processGroupFlowEntityHas(subGroupEntity, createConnectionEntity("subConnectionId", "subConnection", "sourceOne", "destOne", "2 GB", 12L));
 
-        extractService.extractByBranch(branch, temp.getAbsolutePath(), true,true);
+        extractService.extractByBranch(branch, temp.getAbsolutePath(),null, true,true);
 
         GroupProcessorsEntity result = loadOutputFileContent();
         assertEquals(result.getConnections().size(), 1);
