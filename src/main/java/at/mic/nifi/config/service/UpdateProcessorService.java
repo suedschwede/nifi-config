@@ -215,7 +215,8 @@ public class UpdateProcessorService {
                 //find controller for have id
                 controllerServiceEntityFind = all.get(0);
             } else {
-                throw new ConfigException("Cannot find controller " + controllerServiceDTO.getName());
+                System.out.println("Cannot find controller " + controllerServiceDTO.getName());
+                continue;
             }
             //remove old
             stopOldReference(oldControllersService.values());

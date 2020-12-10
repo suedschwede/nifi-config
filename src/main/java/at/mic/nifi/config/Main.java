@@ -129,7 +129,7 @@ public class Main {
                 
                 String paramContext =null;
                 if (cmd.hasOption("ParamContext") ) {
-                	cmd.getOptionValue("ParamContext");
+                	paramContext =cmd.getOptionValue("ParamContext");
                 }
   
                 LOG.info(String.format("Starting config_nifi %s on mode %s", version, cmd.getOptionValue("m")));

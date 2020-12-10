@@ -61,6 +61,7 @@ public class ParameterContextService {
     	ParameterContextEntity context = null;
     	
     	for (ParameterContextEntity con : contexts) {
+    		//System.out.println(con.getComponent().getName());
     		if (contextname.contains(con.getComponent().getName())) {
     			context = con;
     		}

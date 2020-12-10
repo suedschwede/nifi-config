@@ -24,12 +24,18 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -88,7 +94,24 @@ public class TemplateService {
         ProcessGroupFlowDTO processGroupFlow = processGroupService.createDirectory(branch).getProcessGroupFlow();
         File file = new File(fileConfiguration);
         
+        String name1 = "";
         
+        Path path = Paths.get(fileConfiguration);
+        Pattern p = Pattern.compile("<name>(.*?)</name>");
+        try {
+			List<String> content = Files.readAllLines(path, StandardCharsets.UTF_8);
+			for (String line : content) {
+				Matcher m = p.matcher(line);
+				if (m.find()) {
+			        name1 = m.group(1);
+			        continue;
+			    }
+			}
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+
         boolean find = FindParameterContext(checkParamContext);
         
         if (!find) {
@@ -96,10 +119,9 @@ public class TemplateService {
         	return;
         }
         
-
-
         TemplatesEntity templates = flowApi.getTemplates();
-        String name = FilenameUtils.getBaseName(file.getName());
+        String name = name1;
+        System.out.println("Template name=" + name);
         
         if (templates.getTemplates() == null) templates.setTemplates(new ArrayList<>());
         
@@ -107,6 +129,8 @@ public class TemplateService {
         if (oldTemplate.isPresent()) {
             templatesApi.removeTemplate(oldTemplate.get().getTemplate().getId(), false);
         }
+
+
         
         Optional<TemplateEntity> template = null;
         try {
@@ -118,6 +142,7 @@ public class TemplateService {
         //Workaround uploadTemplate always returns an error  !!!
         templates = flowApi.getTemplates();
         for (TemplateEntity  temp : templates.getTemplates()) {
+
         	if (name.contains(temp.getTemplate().getName())) {
         		template = Optional.of(temp);
         	}
